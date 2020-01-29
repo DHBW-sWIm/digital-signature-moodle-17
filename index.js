@@ -27,7 +27,10 @@ const docusign = require('docusign-esign')
     , process = require('process')
     , basePath = 'https://demo.docusign.net/restapi'
     , express = require('express')
+    , bodyParser = require('body-parser')
     , envir = process.env
+    , multer  = require('multer')
+    , upload = multer({ dest: 'uploads/' })
     ;
 
 // baseUrl is the url of the application's web server. Eg http://localhost:3000
@@ -58,8 +61,8 @@ async function openSigningCeremonyController (req, res) {
                                       // https://developers.docusign.com/esign-rest-api/reference/Envelopes/EnvelopeViews/createRecipient
 
   // The document to be signed. Path is relative to the root directory of this repo.
-  //const fileName = "NEEDS TO BE CORRECT";
-  const fileName = 'demo_documents/World_Wide_Corp_lorem.pdf';
+  const fileName = req.file;
+  //const fileName = 'demo_documents/World_Wide_Corp_lorem.pdf';
 
   //------------------------------------------------------------------------------
   ////////////////////////////////////////////////////////////////////////////////
@@ -76,7 +79,7 @@ async function openSigningCeremonyController (req, res) {
   envDef.emailBlurb = 'Please sign this document sent from the Node example.'
 
   // Read the file from the document and convert it to a Base64String
-  const pdfBytes = fs.readFileSync(fileName)
+  const pdfBytes = fs.readFileSync(path.resolve(__dirname, fileName.path))
       , pdfBase64 = pdfBytes.toString('base64');
 
   // Create the document request object
@@ -157,11 +160,12 @@ async function openSigningCeremonyController (req, res) {
 // The mainline
 const port = process.env.PORT || 3000
     , host = process.env.HOST || 'localhost'
-    , app = express()
-       .post('/', openSigningCeremonyController)
+    , app = express().use(bodyParser.urlencoded({ extended: true }))
+       .post('/', upload.single('upload'), openSigningCeremonyController)
        .get('/', (req, res) => {
-         res.send(`<html lang="en"><body><form action="${req.url}" method="post">
-          <input type="file" id= "upload"/>
+         console.log(req.url)
+         res.send(`<html lang="en"><body><form action="${req.url}" method="post" enctype="multipart/form-data">
+          <input type="file" name= "upload"/>
           <input type="submit" value="Sign the document!"/>
           </form></body>`)
        })
